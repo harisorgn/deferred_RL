@@ -5,7 +5,7 @@ using Distributions: pdf
 Base.@kwdef struct DeltaLearner <: AbstractLearner
     approximator::Union{TabularQApproximator,LinearQApproximator}
     Δ_approximator::DeltaApproximator
-    bias_approximator::TabularBiasApproximator
+    offline_approximator::TabularBiasApproximator
     γ::Float64 = 1.0
     method::Symbol
     n::Int = 0
@@ -24,9 +24,9 @@ DeltaLearner(; n_state, n_action, Q_init=0.0, η_Q, Δ_init=0.0, η_Δ, b_init=0
                 method, 
                 n)
 
-(L::DeltaLearner)(env::AbstractEnv) = L.approximator(state(env)) + L.bias_approximator(state(env))
-(L::DeltaLearner)(s) = L.approximator(s) + L.bias_approximator(s)
-(L::DeltaLearner)(s, a) = L.approximator(s, a) + L.bias_approximator(s, a)
+(L::DeltaLearner)(env::AbstractEnv) = L.approximator(state(env)) + L.offline_approximator(state(env))
+(L::DeltaLearner)(s) = L.approximator(s) + L.offline_approximator(s)
+(L::DeltaLearner)(s, a) = L.approximator(s, a) + L.offline_approximator(s, a)
 
 ## update policies
 
@@ -37,7 +37,6 @@ function RLBase.update!(
     s::AbstractStage,
 )
     if p.learner.method === :ExpectedSARSA && s === PRE_ACT_STAGE
-        # A special case
         update!(p.learner, (t, pdf(prob(p, e))), e, s)
     else
         update!(p.learner, t, e, s)
@@ -52,7 +51,7 @@ function RLBase.update!(
 	s::PreActStage
 )
     _update!(L, L.approximator, Val(L.method), t, s)
-    _update!(L, L.bias_approximator, Val(L.method), t, s)
+    #_update!(L, L.offline_approximator, Val(L.method), t, s)
 end
 
 function RLBase.update!(
@@ -62,9 +61,8 @@ function RLBase.update!(
     s::PostEpisodeStage,
 )
     _update!(L, L.approximator, Val(L.method), t, s)
-    _update!(L, L.bias_approximator, Val(L.method), t, s)
+    #_update!(L, L.offline_approximator, Val(L.method), t, s)
 end
-
 
 # for ExpectedSARSA
 function RLBase.update!(
@@ -74,11 +72,10 @@ function RLBase.update!(
     s::Union{PreActStage,PostEpisodeStage},
 )
     _update!(L, L.approximator, Val(L.method), t, s)
-    _update!(L, L.bias_approximator, Val(L.method), t, s)
+    #_update!(L, L.offline_approximator, Val(L.method), t, s)
 end
 
-## update trajectories
-
+# update trajectories
 function RLBase.update!(
     t::AbstractTrajectory,
     ::Union{
@@ -92,7 +89,7 @@ function RLBase.update!(
     empty!(t)
 end
 
-## implementations
+# implementations
 
 function _update!(
     L::DeltaLearner,
@@ -108,7 +105,7 @@ function _update!(
         G = R[end-i+1] + γ * G
         s, a = S[end-i], A[end-i]
         update!(Q, (s, a) => Q(s, a) - G)
-        update!(L.Δ_approximator, Q(s, a) - G)
+        update!(L.Δ_approximator, G - Q(s, a))
     end
 end
 
@@ -126,7 +123,7 @@ function _update!(
         s, a, s′, a′ = S[end-n-1], A[end-n-1], S[end], A[end]
         G = discount_rewards_reduced(@view(R[end-n:end]), γ) + γ^(n + 1) * Q(s′, a′)
         update!(Q, (s, a) => Q(s, a) - G)
-        update!(L.Δ_approximator, Q(s, a) - G)
+        update!(L.Δ_approximator, G - Q(s, a))
     end
 end
 
@@ -149,7 +146,7 @@ function _update!(
         s, a, s′ = S[end-n-1], A[end-n-1], S[end]
         G = discount_rewards_reduced(@view(R[end-n:end]), γ) + γ^(n + 1) * dot(Q(s′), p)
         update!(Q, (s, a) => Q(s, a) - G)
-        update!(L.Δ_approximator, Q(s, a) - G)
+        update!(L.Δ_approximator, G - Q(s, a))
     end
 end
 
@@ -170,54 +167,7 @@ function _update!(
         s, a, s′ = S[end-n-1], A[end-n-1], S[end]
         G = discount_rewards_reduced(@view(R[end-n:end]), γ) + γ^(n + 1) * maximum(Q(s′))
         update!(Q, (s, a) => Q(s, a) - G)
-        update!(L.Δ_approximator, Q(s, a) - G)
-    end
-end
-
-function _update!(
-    L::DeltaLearner,
-    ::Union{TabularVApproximator,LinearVApproximator},
-    ::Val{:SRS},
-    t::Trajectory,
-    ::PostEpisodeStage,
-)
-    S, R = t[:state], t[:reward]
-    n, γ, V = L.n, L.γ, L.approximator
-    G = 0.0
-    w = 1.0
-    for i in 1:min(n + 1, length(R))
-        G = R[end-i+1] + γ * G
-        s = S[end-i]
-        if haskey(t, :weight)
-            w *= t[:weight][end-i]
-        end
-        update!(V, s => w * (V(s) - G))
-        update!(L.Δ_approximator, w * (V(s) - G))
-    end
-end
-
-function _update!(
-    L::DeltaLearner,
-    ::Union{TabularVApproximator,LinearVApproximator},
-    ::Val{:SRS},
-    t::AbstractTrajectory,
-    ::PreActStage,
-)
-    S = t[:state]
-    R = t[:reward]
-
-    n, γ, V = L.n, L.γ, L.approximator
-    if length(R) >= n + 1
-        s, s′ = S[end-n-1], S[end]
-        G = discount_rewards_reduced(@view(R[end-n:end]), γ) + γ^(n + 1) * V(s′)
-        if haskey(t, :weight)
-            W = t[:weight]
-            @views w = reduce(*, W[end-n-1:end-1])
-        else
-            w = 1.0
-        end
-        update!(V, s => w * (V(s) - G))
-        update!(L.Δ_approximator, w * (V(s) - G))
+        update!(L.Δ_approximator, G - Q(s, a))
     end
 end
 
@@ -244,6 +194,53 @@ function _update!(
 
     for a in A_v
         N_a = count(x -> x == a, t[:action])
-        update!(L.bias_approximator, (s,a) => N_a * Δ / N)
+        update!(L.offline_approximator, (s,a) => N_a * Δ / N)
+    end
+end
+
+#---------
+# Offline
+#---------
+
+function RLBase.update!(
+    p::QBasedPolicy{<:DeltaLearner},
+    m::ExperiencePrioritySamplingModel,
+    ::AbstractTrajectory,
+    env::AbstractEnv,
+    ::PreActStage,
+)   
+end
+
+function RLBase.update!(
+    p::QBasedPolicy{<:DeltaLearner},
+    m::ExperiencePrioritySamplingModel,
+    ::AbstractTrajectory,
+    env::AbstractEnv,
+    ::PostEpisodeStage,
+)   
+    if p.learner.method == :SARS
+        L = p.learner
+        Δ = L.Δ_approximator.Δ
+        transition = sample(m)
+
+        if !isnothing(transition)
+            s, a, r, d, s′, P = transition
+            update!(L.offline_approximator, (s,a) => Δ)
+        end
+    else
+        @error "unsupported method $(L.method)"
+    end
+end
+
+function RLBase.priority(L::DeltaLearner, transition::Tuple)
+    if L.method == :SARS
+        s, a, r, d, s′ = transition
+        γ, Q = L.γ, L.approximator
+        δ = d ? (r - Q(s, a)) : (r + γ^(L.n + 1) * maximum(Q(s′)) - Q(s, a))
+        δ = [δ]  # must be broadcastable in Flux.Optimise
+        Flux.Optimise.apply!(Q.optimizer, (s, a), δ)
+        abs(δ[])
+    else
+        @error "unsupported method"
     end
 end

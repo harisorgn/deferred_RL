@@ -1,9 +1,8 @@
 
-Base.@kwdef struct DeltaAgent{M,T} <: AbstractPolicy
-    policy::QBasedPolicy{DeltaLearner}
-    model::M
+Base.@kwdef struct DeltaAgent{T} <: AbstractPolicy
+    policy::QBasedPolicy{<:DeltaLearner}
+    model::ExperiencePrioritySamplingModel
     trajectory::T
-    replay_steps::Int = 10
 end
 
 (p::DeltaAgent)(env::AbstractEnv) = p.policy(env)
@@ -18,32 +17,13 @@ function (agent::DeltaAgent)(stage::PreActStage, env::AbstractEnv, action)
     Delta_update!(agent, env, stage)
 end
 
+(agent::DeltaAgent)(::PreEpisodeStage, ::AbstractEnv) = empty!(agent.model.experiences)
+
 function Delta_update!(agent, env, stage)
-    # 1. model learning
+    # experience accumulation
     update!(agent.model, agent.trajectory, agent.policy, env, stage)
-    # 2. direct learning
+    # online learning
     update!(agent.policy, agent.trajectory, env, stage)
-    # 3. policy learning
-    for _ in 1:agent.replay_steps
-        update!(agent.policy, agent.model, agent.trajectory, env, stage)
-    end
+    # offline learning
+    update!(agent.policy, agent.model, agent.trajectory, env, stage)
 end
-
-# 1. model learning
-# By default we do nothing
-function RLBase.update!(
-    ::AbstractEnvironmentModel,
-    ::AbstractTrajectory,
-    ::AbstractPolicy,
-    ::AbstractEnv,
-    ::AbstractStage,
-) end
-
-# 3. policy learning
-function RLBase.update!(
-    ::AbstractPolicy,
-    ::AbstractEnvironmentModel,
-    ::AbstractTrajectory,
-    ::AbstractEnv,
-    ::AbstractStage,
-) end
