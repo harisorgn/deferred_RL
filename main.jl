@@ -2,6 +2,7 @@ using Random
 using ReinforcementLearning
 using Flux
 using UnicodePlots
+using Distributions
 
 include("do_every_step_episode_hook.jl")
 include("deferred_bandits.jl")
@@ -12,13 +13,13 @@ include("Delta_learner.jl")
 include("Delta_agent.jl")
 
 n_bandits = 10
-n_episodes = 10
+n_episodes = 1
 n_steps_per_episode = 50
-#true_rewards = [5,5,5,0,0,2,2,2,0,0]
-true_rewards = fill(5.0, n_bandits)
+
+reward_distributions = fill(DiscreteNonParametric([0.0],[1]), n_bandits)
 
 env = DeferredBanditsEnv(; k=n_bandits,
-                        true_rewards=true_rewards, 
+                        reward_distributions=reward_distributions, 
                         n_steps=n_steps_per_episode)
 
 η_Q = 0.5
@@ -53,9 +54,16 @@ run(agent,
 
 q = agent.policy.learner.approximator.table[:]
 push!(q, 0.0)
-println(stairs(1:length(q[:]), q[:], style=:post, ylabel="Q"))
+p = stairs(1:length(q[:]), q[:], style=:post, ylabel="Q")
+for x in RLBase.action_space(env)
+    annotate!(p, x+0.5, 0, string(x))
+end
+println(p)
 
 b = agent.policy.learner.offline_approximator.table[:]
 push!(b, 0.0)
-println(stairs(1:length(b[:]), b[:], style=:post, ylabel="bias"))
-
+p = stairs(1:length(b[:]), b[:], style=:post, ylabel="bias")
+for x in RLBase.action_space(env)
+    annotate!(p, x+0.5, 0, string(x))
+end
+println(p)

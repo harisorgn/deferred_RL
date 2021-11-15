@@ -221,6 +221,7 @@ function RLBase.update!(
     if p.learner.method == :SARS
         L = p.learner
         Δ = L.Δ_approximator.Δ
+        for _ = 1:m.N_samples
         transition = sample(m)
 
         if !isnothing(transition)
@@ -240,6 +241,7 @@ function RLBase.priority(L::DeltaLearner, transition::Tuple)
         δ = [δ]  # must be broadcastable in Flux.Optimise
         Flux.Optimise.apply!(Q.optimizer, (s, a), δ)
         abs(δ[])
+        return 1.0
     else
         @error "unsupported method"
     end

@@ -17,7 +17,10 @@ function (agent::DeltaAgent)(stage::PreActStage, env::AbstractEnv, action)
     Delta_update!(agent, env, stage)
 end
 
-(agent::DeltaAgent)(::PreEpisodeStage, ::AbstractEnv) = empty!(agent.model.experiences)
+function (agent::DeltaAgent)(::PreEpisodeStage, ::AbstractEnv)
+    empty!(agent.model.experiences)
+    agent.model.sample_count = 0
+end
 
 function Delta_update!(agent, env, stage)
     # experience accumulation
