@@ -13,7 +13,7 @@ include("Delta_learner.jl")
 include("Delta_agent.jl")
 
 n_bandits = 10
-n_episodes = 1
+n_episodes = 100
 n_steps_per_episode = 50
 
 reward_distributions = fill(DiscreteNonParametric([0.0],[1]), n_bandits)

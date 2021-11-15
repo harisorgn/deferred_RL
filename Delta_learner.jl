@@ -221,12 +221,14 @@ function RLBase.update!(
     if p.learner.method == :SARS
         L = p.learner
         Δ = L.Δ_approximator.Δ
-        for _ = 1:m.N_samples
-        transition = sample(m)
 
-        if !isnothing(transition)
-            s, a, r, d, s′, P = transition
-            update!(L.offline_approximator, (s,a) => Δ)
+        for _ = 1:m.N_samples
+            transition = sample(m)
+
+            if !isnothing(transition)
+                s, a, r, d, s′, P = transition
+                update!(L.offline_approximator, (s,a) => Δ)
+            end
         end
     else
         @error "unsupported method $(L.method)"
