@@ -38,7 +38,6 @@ learner = DeltaLearner(; n_state=length(state_space(env)),
 
 
 explorer = WeightedSoftmaxExplorer()
-             VectorSARTTrajectory())
 
 agent = DeltaAgent(QBasedPolicy(learner, explorer), 
                     ExperiencePrioritySamplingModel(; N_samples=N_offline_samples),
