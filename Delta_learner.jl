@@ -169,34 +169,7 @@ function _update!(
         update!(Q, (s, a) => Q(s, a) - G)
         update!(L.Δ_approximator, G - Q(s, a))
     end
-end
-
-function _update!(
-    L::DeltaLearner,
-    ::TabularBiasApproximator,
-    ::Any,
-    t::Trajectory,
-    ::PreActStage,
-)
-end
-
-function _update!(
-    L::DeltaLearner,
-    ::TabularBiasApproximator,
-    ::Any,
-    t::Trajectory,
-    ::PostEpisodeStage,
-)
-    A_v = unique(t[:action])
-    N = length(t[:action])
-    Δ = L.Δ_approximator.Δ
-    s = 1
-
-    for a in A_v
-        N_a = count(x -> x == a, t[:action])
-        update!(L.offline_approximator, (s,a) => N_a * Δ / N)
-    end
-end
+end 
 
 #---------
 # Offline

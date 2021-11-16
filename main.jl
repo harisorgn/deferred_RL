@@ -13,18 +13,19 @@ include("Delta_learner.jl")
 include("Delta_agent.jl")
 
 n_bandits = 10
-n_episodes = 100
+n_episodes = 10
 n_steps_per_episode = 50
-
+    
 reward_distributions = fill(DiscreteNonParametric([0.0],[1]), n_bandits)
 
 env = DeferredBanditsEnv(; k=n_bandits,
                         reward_distributions=reward_distributions, 
                         n_steps=n_steps_per_episode)
 
-η_Q = 0.5
-η_Δ = 0.5
-η_b = 0.5
+N_offline_samples = 20
+η_Q = 0.1
+η_Δ = 0.1
+η_b = 1.0/N_offline_samples
 γ = 0.0
 
 learner = DeltaLearner(; n_state=length(state_space(env)),
@@ -37,12 +38,10 @@ learner = DeltaLearner(; n_state=length(state_space(env)),
 
 
 explorer = WeightedSoftmaxExplorer()
-
-#agent = Agent(QBasedPolicy(learner, explorer), 
-#                VectorSARTTrajectory())
+             VectorSARTTrajectory())
 
 agent = DeltaAgent(QBasedPolicy(learner, explorer), 
-                    ExperiencePrioritySamplingModel(; N_samples=10),
+                    ExperiencePrioritySamplingModel(; N_samples=N_offline_samples),
                     VectorSARTTrajectory())
 
 h = DoEveryNStepEveryEpisode(deferred_reward_hook; n=n_steps_per_episode-1)

@@ -19,7 +19,6 @@ end
 
 function (agent::DeltaAgent)(::PreEpisodeStage, ::AbstractEnv)
     empty!(agent.model.experiences)
-    agent.model.sample_count = 0
 end
 
 function Delta_update!(agent, env, stage)

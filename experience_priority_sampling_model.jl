@@ -3,7 +3,6 @@ using StatsBase: Weights
 
 Base.@kwdef mutable struct ExperiencePrioritySamplingModel{R} <: AbstractEnvironmentModel
     experiences::Vector{Tuple} = Vector{Tuple}()
-    sample_count::Int = 0
     N_samples::Int
     rng::R = Random.GLOBAL_RNG
 end
@@ -36,9 +35,8 @@ end
 sample(model::ExperiencePrioritySamplingModel) = sample(model.rng, model)
 
 function sample(rng::AbstractRNG, m::ExperiencePrioritySamplingModel)
-    if length(m.experiences) > 0 && m.sample_count <= m.N_samples
+    if length(m.experiences) > 0 
         w = Weights(map(x->x[end], m.experiences))
-        m.sample_count += 1
         sample(m.rng, m.experiences, w)
     else
         nothing
