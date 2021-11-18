@@ -16,7 +16,13 @@ DeferredBanditsEnv(; k = 10, reward_distributions, n_steps, rng = Random.GLOBAL_
 
 
 function deferred_reward_hook(t, agent, env)
-    env.deferred_reward = count(x -> x == 1, agent.trajectory[:action]) * 1.0
+
+
+    actions_v = agent.trajectory[:action][end-t+1:end]
+
+    env.deferred_reward = map(a -> count(x -> x == a, actions_v) *2*a, RLBase.action_space(env)) |>
+                            sum |>
+                            x -> x / length(actions_v)
 end
 
 RLBase.action_space(env::DeferredBanditsEnv) = Base.OneTo(length(env.reward_distributions))

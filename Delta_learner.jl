@@ -51,7 +51,6 @@ function RLBase.update!(
 	s::PreActStage
 )
     _update!(L, L.approximator, Val(L.method), t, s)
-    #_update!(L, L.offline_approximator, Val(L.method), t, s)
 end
 
 function RLBase.update!(
@@ -61,7 +60,6 @@ function RLBase.update!(
     s::PostEpisodeStage,
 )
     _update!(L, L.approximator, Val(L.method), t, s)
-    #_update!(L, L.offline_approximator, Val(L.method), t, s)
 end
 
 # for ExpectedSARSA
@@ -72,7 +70,6 @@ function RLBase.update!(
     s::Union{PreActStage,PostEpisodeStage},
 )
     _update!(L, L.approximator, Val(L.method), t, s)
-    #_update!(L, L.offline_approximator, Val(L.method), t, s)
 end
 
 # update trajectories

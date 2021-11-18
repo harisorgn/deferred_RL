@@ -13,3 +13,5 @@ function (hook::DoEveryNStepEveryEpisode)(::PostActStage, agent, env)
         hook.t = 0
     end
 end
+
+(hook::DoEveryNStepEveryEpisode)(::PreEpisodeStage, agent, env) = hook.t = 0
