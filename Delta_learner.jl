@@ -205,16 +205,3 @@ function RLBase.update!(
     end
 end
 
-function RLBase.priority(L::DeltaLearner, transition::Tuple)
-    if L.method == :SARS
-        s, a, r, d, s′ = transition
-        γ, Q = L.γ, L.approximator
-        δ = d ? (r - Q(s, a)) : (r + γ^(L.n + 1) * maximum(Q(s′)) - Q(s, a))
-        δ = [δ]  # must be broadcastable in Flux.Optimise
-        Flux.Optimise.apply!(Q.optimizer, (s, a), δ)
-        abs(δ[])
-        return 1.0
-    else
-        @error "unsupported method"
-    end
-end

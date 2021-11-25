@@ -11,7 +11,7 @@ function RLBase.update!(
     m::ExperiencePrioritySamplingModel,
     t::AbstractTrajectory,
     p::AbstractPolicy,
-    ::AbstractEnv,
+    env::AbstractEnv,
     ::Union{PreActStage,PostEpisodeStage},
 )
     if length(t[:terminal]) > 0
@@ -22,7 +22,7 @@ function RLBase.update!(
             t[:terminal][end],
             t[:state][end],
         )
-        pri = RLBase.priority(p, transition)
+        pri = RLBase.priority(p, transition, env)
         update!(m, (transition..., pri))
     end
 end
