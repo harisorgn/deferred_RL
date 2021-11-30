@@ -28,7 +28,6 @@ function RLBase.update!(
 end
 
 function RLBase.update!(m::ExperiencePrioritySamplingModel, transition::Tuple)
-    s, a, r, d, s′, P = transition
     push!(m.experiences, transition)
 end
 

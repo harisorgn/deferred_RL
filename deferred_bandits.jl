@@ -19,7 +19,7 @@ function deferred_reward_hook(t, agent, env)
 
     actions_v = agent.trajectory[:action]
 
-    env.deferred_reward = map(a -> count(x -> x == a, actions_v) *2*a, RLBase.action_space(env)) |>
+    env.deferred_reward = map(a -> count(x -> x == a, actions_v) *a*2.0, RLBase.action_space(env)) |>
                             sum |>
                             x -> x / length(actions_v)
 end
