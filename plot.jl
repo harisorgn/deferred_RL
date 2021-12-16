@@ -1,27 +1,41 @@
-using CairoMakie: lines!, band!, save, Figure, Axis
+using CairoMakie
 
-function plot_band(r_Delta, r_mc, r_no_Delta)
+function plot_perform!(R, ax, label::String)
+
+	t = 1:size(R)[2] 
+
+	μ = vec(mean(R, dims=1))
+	σ = vec(std(R, dims=1))
+
+	l = lines!(ax, t, μ, label=label, colormap = :seaborn_colorblind6)
+
+	band!(ax, t, μ+σ, μ-σ, color=(l.color,0.5), colormap = :seaborn_colorblind6)
+end
+
+function plot_agents(R, agent_labels, env_labels)
+
+	@assert length(R) == length(env_labels)
+	@assert length(R[1]) == length(agent_labels)
+
 	f = Figure()
-	Axis(f[1, 1])
 
-	t = 1:n_episodes
+	ax = [
+	    Axis(f[i,1], xlabel="Episode", ylabel=L"\tilde{R}", title=env_labels[i])
+	    for i=1:length(env_labels)
+	    ]
 
-	μ_Delta = vec(mean(r_Delta, dims=1))
-	σ_Delta = vec(std(r_Delta, dims=1))
+	map(zip(R, ax)) do (R_env, ax_env)
 
-	μ_mc = vec(mean(r_mc, dims=1))
-	σ_mc = vec(std(r_mc, dims=1))
+	    plot_perform!.(
+	                    R_env, 
+	                    ax_env, 
+	                    agent_labels 
+	                    )
 
-	μ_no = vec(mean(r_no_Delta, dims=1))
-	σ_no = vec(std(r_no_Delta, dims=1))
+	end
 
-	lines!(t, μ_Delta, color=:blue)
-	lines!(t, μ_mc, color=:red)
-	lines!(t, μ_no, color=:green)
+	hidexdecorations!.(ax[1:end-1])
+	f[1, 2] = Legend(f, ax[1], framevisible = false)
 
-	band!(t, μ_Delta + σ_Delta, μ_Delta - σ_Delta, color=(:blue,0.5))
-	band!(t, μ_mc + σ_mc, μ_mc - σ_mc, color=(:red,0.5))
-	band!(t, μ_no + σ_no, μ_no - σ_no, color=(:green,0.2))
-
-	save("res.png", f)
+	save("res.eps", f)
 end

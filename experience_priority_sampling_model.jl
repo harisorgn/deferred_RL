@@ -23,7 +23,7 @@ function RLBase.update!(
             t[:state][end],
         )
         pri = RLBase.priority(p, transition, env)
-        update!(m, (transition..., pri))
+        RLBase.update!(m, (transition..., pri))
     end
 end
 

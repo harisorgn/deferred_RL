@@ -11,25 +11,35 @@ Base.@kwdef struct DeltaLearner <: AbstractLearner
     n::Int = 0
 end
 
-DeltaLearner(; n_state, n_action, η_Q, η_Δ, η_b, γ=0.0, method=:SARS, n=0) =
-    DeltaLearner(
-                TabularQApproximator(;
-                                    n_state=n_state,
-                                    n_action=n_action,
-                                    opt=Descent(η_Q)
-                                    ),
-                DeltaApproximator(;
-                                η = η_Δ
-                                ),
-                TabularBiasApproximator(; 
-                                        n_state=n_state,
-                                        n_action=n_action,
-                                        η = η_b
-                                        ), 
-                γ, 
-                method, 
-                n
-                )
+function DeltaLearner(; 
+                    n_state, 
+                    n_action, 
+                    η_Q, 
+                    η_Δ, 
+                    η_b, 
+                    γ=0.0, 
+                    method=:SARS, 
+                    n=0
+                    )
+    return DeltaLearner(
+                        TabularQApproximator(;
+                                            n_state=n_state,
+                                            n_action=n_action,
+                                            opt=Descent(η_Q)
+                                            ),
+                        DeltaApproximator(;
+                                        η = η_Δ
+                                        ),
+                        TabularBiasApproximator(; 
+                                                n_state=n_state,
+                                                n_action=n_action,
+                                                η = η_b
+                                                ), 
+                        γ, 
+                        method, 
+                        n
+                        )
+end
 
 (L::DeltaLearner)(env::AbstractEnv) = L.approximator(state(env)) + L.offline_approximator(state(env))
 (L::DeltaLearner)(s) = L.approximator(s) + L.offline_approximator(s)
@@ -44,9 +54,9 @@ function RLBase.update!(
     s::AbstractStage,
 )
     if p.learner.method === :ExpectedSARSA && s === PRE_ACT_STAGE
-        update!(p.learner, (t, pdf(prob(p, e))), e, s)
+        RLBase.update!(p.learner, (t, pdf(prob(p, e))), e, s)
     else
-        update!(p.learner, t, e, s)
+        RLBase.update!(p.learner, t, e, s)
     end
 end
 
@@ -108,8 +118,8 @@ function _update!(
     for i in 1:min(n + 1, length(R))
         G = R[end-i+1] + γ * G
         s, a = S[end-i], A[end-i]
-        update!(L.Δ_approximator, Q(s, a) + b(s,a) - G)
-        update!(Q, (s, a) => Q(s, a) - G)
+        RLBase.update!(L.Δ_approximator, G - Q(s, a) - b(s,a))
+        RLBase.update!(Q, (s, a) => Q(s, a) - G)
     end
 end
 
@@ -118,7 +128,7 @@ function _update!(
     ::Union{TabularQApproximator,LinearQApproximator},
     ::Val{:SARSA},
     t::Trajectory,
-    ::PreActStage,
+    ::PreActStage, 
 )
     S, A, R, T = [t[x] for x in SART]
     n, γ, Q, b = L.n, L.γ, L.approximator, L.offline_approximator
@@ -126,8 +136,8 @@ function _update!(
     if length(R) >= n + 1
         s, a, s′, a′ = S[end-n-1], A[end-n-1], S[end], A[end]
         G = discount_rewards_reduced(@view(R[end-n:end]), γ) + γ^(n + 1) * Q(s′, a′)
-        update!(L.Δ_approximator, Q(s, a) + b(s,a) - G)
-        update!(Q, (s, a) => Q(s, a) - G)
+        RLBase.update!(L.Δ_approximator, G - Q(s, a) - b(s,a))
+        RLBase.update!(Q, (s, a) => Q(s, a) - G)
     end
 end
 
@@ -149,8 +159,8 @@ function _update!(
     if length(R) >= n + 1
         s, a, s′ = S[end-n-1], A[end-n-1], S[end]
         G = discount_rewards_reduced(@view(R[end-n:end]), γ) + γ^(n + 1) * dot(Q(s′), p)
-        update!(L.Δ_approximator, Q(s, a) + b(s,a) - G)
-        update!(Q, (s, a) => Q(s, a) - G)
+        RLBase.update!(L.Δ_approximator, G - Q(s, a) - b(s,a))
+        RLBase.update!(Q, (s, a) => Q(s, a) - G)
     end
 end
 
@@ -170,8 +180,8 @@ function _update!(
     if length(R) >= n + 1
         s, a, s′ = S[end-n-1], A[end-n-1], S[end]
         G = discount_rewards_reduced(@view(R[end-n:end]), γ) + γ^(n + 1) * maximum(Q(s′))
-        update!(L.Δ_approximator, Q(s, a) + b(s,a) - G)
-        update!(Q, (s, a) => Q(s, a) - G)
+        RLBase.update!(L.Δ_approximator, G - Q(s, a) - b(s,a))
+        RLBase.update!(Q, (s, a) => Q(s, a) - G)
     end
 end 
 
@@ -204,7 +214,7 @@ function RLBase.update!(
 
             if !isnothing(transition)
                 s, a, r, d, s′, P = transition
-                update!(L.offline_approximator, (s,a) => Δ)
+                RLBase.update!(L.offline_approximator, (s,a) => Δ)
             end
         end
     else

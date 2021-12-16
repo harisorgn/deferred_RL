@@ -1,8 +1,9 @@
 
 Base.@kwdef mutable struct DeferredBanditsEnv <: AbstractEnv
 
-    reward_distributions::Vector{Distribution}
+    reward_distributions::Vector{<:Distribution}
     n_steps::Int64
+    n_episodes::Int64
     rng::AbstractRNG
     # cache
     reward::Float64
@@ -11,13 +12,28 @@ Base.@kwdef mutable struct DeferredBanditsEnv <: AbstractEnv
     is_terminated::Bool
 end
 
-DeferredBanditsEnv(; k = 10, reward_distributions, n_steps, rng = Random.GLOBAL_RNG) =
-    DeferredBanditsEnv(reward_distributions, n_steps, rng, 0.0, 0.0, 0, false)
-
+function DeferredBanditsEnv(; 
+                            k = 10, 
+                            reward_distributions, 
+                            n_steps, 
+                            n_episodes, 
+                            rng = Random.GLOBAL_RNG
+                            )
+    return DeferredBanditsEnv(
+                            reward_distributions, 
+                            n_steps, 
+                            n_episodes,
+                            rng, 
+                            0.0, 
+                            0.0, 
+                            0, 
+                            false
+                            )
+end
 
 function deferred_reward_hook(t, agent, env)
 
-    actions_v = agent.trajectory[:action]
+    actions_v = agent.trajectory[:action][end-t+1:end]
 
     env.deferred_reward = map(a -> count(x -> x == a, actions_v) *a*2.0, RLBase.action_space(env)) |>
                             sum |>
@@ -30,7 +46,7 @@ function (env::DeferredBanditsEnv)(action)
 
 	env.curent_step += 1
 
-    env.reward = rand.(env.rng, env.reward_distributions)[action] + env.deferred_reward
+    env.reward = rand(env.rng, env.reward_distributions[action]) + env.deferred_reward
 
     env.deferred_reward = 0.0
     env.is_terminated = env.curent_step == env.n_steps ? true : false

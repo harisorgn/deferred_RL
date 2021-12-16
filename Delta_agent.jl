@@ -8,27 +8,27 @@ end
 (p::DeltaAgent)(env::AbstractEnv) = p.policy(env)
 
 function (agent::DeltaAgent)(stage::AbstractStage, env::AbstractEnv)
-    update!(agent.trajectory, agent.policy, env, stage)
+    RLBase.update!(agent.trajectory, agent.policy, env, stage)
     Delta_update!(agent, env, stage)
 end
 
 function (agent::DeltaAgent)(stage::PreActStage, env::AbstractEnv, action)
-    update!(agent.trajectory, agent.policy, env, stage, action)
+    RLBase.update!(agent.trajectory, agent.policy, env, stage, action)
     Delta_update!(agent, env, stage)
 end
 
 function (agent::DeltaAgent)(stage::PreEpisodeStage, env::AbstractEnv)
-    update!(agent.trajectory, agent.policy, env, stage)
+    RLBase.update!(agent.trajectory, agent.policy, env, stage)
     empty!(agent.model.experiences)
 end
 
 function Delta_update!(agent, env, stage)
     # experience accumulation
-    update!(agent.model, agent.trajectory, agent, env, stage)
+    RLBase.update!(agent.model, agent.trajectory, agent, env, stage)
     # online learning
-    update!(agent.policy, agent.trajectory, env, stage)
+    RLBase.update!(agent.policy, agent.trajectory, env, stage)
     # offline learning
-    update!(agent.policy, agent.model, agent.trajectory, env, stage)
+    RLBase.update!(agent.policy, agent.model, agent.trajectory, env, stage)
 end
 
 function RLBase.priority(agent::DeltaAgent, transition::Tuple, env::AbstractEnv)
