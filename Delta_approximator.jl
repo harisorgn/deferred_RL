@@ -6,11 +6,8 @@ end
 
 DeltaApproximator(; η) = DeltaApproximator(η, 0.0)
 
-(app::DeltaApproximator)(s::Int) = @view app.Δ[1]
-(app::DeltaApproximator)(s::Int, a::Int) = @view app.Δ[1]
-
-function RLBase.update!(app::DeltaApproximator, δ::Float64)
-	app.Δ += app.η*(δ - app.Δ)
+function RLBase.update!(app::DeltaApproximator, G::Float64, Q::Float64, b::Float64)
+	app.Δ += app.η*(G - Q - b - app.Δ)
 end
 
 

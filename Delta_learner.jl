@@ -3,7 +3,7 @@ using LinearAlgebra: dot
 using Distributions: pdf
 
 Base.@kwdef struct DeltaLearner <: AbstractLearner
-    approximator::Union{TabularQApproximator,LinearQApproximator}
+    approximator::Union{TabularQApproximator, LinearQApproximator}
     Δ_approximator::DeltaApproximator
     offline_approximator::TabularBiasApproximator
     γ::Float64 = 0.0
@@ -113,12 +113,12 @@ function _update!(
     ::PostEpisodeStage,
 )
     S, A, R, T = [t[x] for x in SART]
-    n, γ, Q, b = L.n, L.γ, L.approximator, L.offline_approximator
+    n, γ, Q, b, Δ = L.n, L.γ, L.approximator, L.offline_approximator, L.Δ_approximator
     G = 0.0
     for i in 1:min(n + 1, length(R))
         G = R[end-i+1] + γ * G
         s, a = S[end-i], A[end-i]
-        RLBase.update!(L.Δ_approximator, G - Q(s, a) - b(s,a))
+        RLBase.update!(Δ, G, Q(s, a), b(s,a))
         RLBase.update!(Q, (s, a) => Q(s, a) - G)
     end
 end
@@ -131,12 +131,12 @@ function _update!(
     ::PreActStage, 
 )
     S, A, R, T = [t[x] for x in SART]
-    n, γ, Q, b = L.n, L.γ, L.approximator, L.offline_approximator
+    n, γ, Q, b, Δ = L.n, L.γ, L.approximator, L.offline_approximator, L.Δ_approximator
 
     if length(R) >= n + 1
         s, a, s′, a′ = S[end-n-1], A[end-n-1], S[end], A[end]
         G = discount_rewards_reduced(@view(R[end-n:end]), γ) + γ^(n + 1) * Q(s′, a′)
-        RLBase.update!(L.Δ_approximator, G - Q(s, a) - b(s,a))
+        RLBase.update!(Δ, G, Q(s, a), b(s,a))
         RLBase.update!(Q, (s, a) => Q(s, a) - G)
     end
 end
@@ -154,12 +154,12 @@ function _update!(
     A = t[:action]
     R = t[:reward]
 
-    n, γ, Q, b = L.n, L.γ, L.approximator, L.offline_approximator
+    n, γ, Q, b, Δ = L.n, L.γ, L.approximator, L.offline_approximator, L.Δ_approximator
 
     if length(R) >= n + 1
         s, a, s′ = S[end-n-1], A[end-n-1], S[end]
         G = discount_rewards_reduced(@view(R[end-n:end]), γ) + γ^(n + 1) * dot(Q(s′), p)
-        RLBase.update!(L.Δ_approximator, G - Q(s, a) - b(s,a))
+        RLBase.update!(Δ, G, Q(s, a), b(s,a))
         RLBase.update!(Q, (s, a) => Q(s, a) - G)
     end
 end
@@ -175,12 +175,12 @@ function _update!(
     A = t[:action]
     R = t[:reward]
 
-    n, γ, Q, b = L.n, L.γ, L.approximator, L.offline_approximator
+    n, γ, Q, b, Δ = L.n, L.γ, L.approximator, L.offline_approximator, L.Δ_approximator
 
     if length(R) >= n + 1
         s, a, s′ = S[end-n-1], A[end-n-1], S[end]
         G = discount_rewards_reduced(@view(R[end-n:end]), γ) + γ^(n + 1) * maximum(Q(s′))
-        RLBase.update!(L.Δ_approximator, G - Q(s, a) - b(s,a))
+        RLBase.update!(Δ, G, Q(s, a), b(s,a))
         RLBase.update!(Q, (s, a) => Q(s, a) - G)
     end
 end 
@@ -208,13 +208,14 @@ function RLBase.update!(
     if p.learner.method == :SARS
         L = p.learner
         Δ = L.Δ_approximator.Δ
+        b = L.offline_approximator
 
         for _ = 1:m.N_samples
             transition = sample(m)
 
             if !isnothing(transition)
                 s, a, r, d, s′, P = transition
-                RLBase.update!(L.offline_approximator, (s,a) => Δ)
+                RLBase.update!(b, (s,a) => Δ)
             end
         end
     else

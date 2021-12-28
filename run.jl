@@ -16,18 +16,18 @@ function reset!(p::T) where T<:AbstractPolicy
 	p.learner.approximator.table .= zero(eltype(p.learner.approximator.table))
 end
 
-function run_agents(agent, env; n_runs=1000, h=EmptyHook())
+function run_agent(agent, env; n_runs=1000, h=EmptyHook())
 
     R = zeros(n_runs, env.n_episodes)
-
-    rand_agent = Agent(
-                RandomPolicy(RLBase.action_space(env)),
-                VectorSARTTrajectory()
-                )
 
     for i = 1:n_runs
         for j = 1:env.n_episodes
 
+            rand_agent = Agent(
+                            RandomPolicy(RLBase.action_space(env)),
+                            VectorSARTTrajectory()
+                            )
+            
             run(
                 agent,
                 env,
@@ -42,7 +42,7 @@ function run_agents(agent, env; n_runs=1000, h=EmptyHook())
                 h
                 )
 
-            r_rand = sum(rand_agent.trajectory[:reward][end-n_steps_per_episode+1:end])
+            r_rand = sum(rand_agent.trajectory[:reward])
 
             R[i,j] = sum(agent.trajectory[:reward]) - r_rand
         end
@@ -50,6 +50,5 @@ function run_agents(agent, env; n_runs=1000, h=EmptyHook())
         reset!(agent)
         RLBase.reset!(env)
     end
-
     return R
 end
