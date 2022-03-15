@@ -65,9 +65,6 @@ E = repeat(env_v, length(η_v))
 
 R = map(zip(E,H)) do (env, η)
 
-        # WeightedSoftmaxExplorer()
-        # EpsilonGreedyExplorer(0.1)
-
         agent_Delta = DeltaAgent(
                         QBasedPolicy(
                                     DeltaLearner(; 
