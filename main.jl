@@ -14,7 +14,7 @@ include("Delta_approximator.jl")
 include("Delta_learner.jl")
 include("Delta_agent.jl")
 include("run.jl")
-include("plot.jl")
+include("figures.jl")
 
 n_bandits = 10
 n_steps_per_episode = 50
