@@ -1,6 +1,3 @@
-import StatsBase: sample
-using StatsBase: Weights
-
 Base.@kwdef mutable struct ExperiencePrioritySamplingModel{R} <: AbstractEnvironmentModel
     experiences::Vector{Tuple} = Vector{Tuple}()
     N_samples::Int

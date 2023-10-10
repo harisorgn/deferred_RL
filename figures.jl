@@ -1,7 +1,240 @@
-using CairoMakie
-using LaTeXStrings
-using Serialization
-using Statistics
+function plot_perform(R)
+
+    Delta_idx, MC_idx, Q_idx = Base.OneTo(3)
+    idx_episode = size(first(R))[2]
+
+    agent_labels = ["Delta", "Monte Carlo", "Q-learning"]
+    env_labels = [
+        L"\text{DB}_1^1",
+        L"\text{DB}_2^1",
+        L"\text{DB}_2^2",
+        L"\text{DB}_2^3",
+        L"\text{DB}_3^1",
+        L"\text{DB}_3^2",
+        L"\text{DB}_3^3",
+        L"\text{TB}^1",
+        L"\text{TB}^2",
+        L"\text{TB}^3"
+    ]
+    
+    fig_sz_inch = (6.4, 12)
+	font_sz = 12
+
+    f = Figure(resolution = 72 .* fig_sz_inch, fontsize=font_sz)
+
+    ga = f[1, 1] = GridLayout()
+	gb = f[2, 1] = GridLayout()
+	gc = f[2, 2] = GridLayout()
+	gd = f[2, 3] = GridLayout()
+    ge = f[3, 1] = GridLayout()
+	gf = f[3, 2] = GridLayout()
+	gg = f[3, 3] = GridLayout()
+    gh = f[4, 1] = GridLayout()
+	gi = f[4, 2] = GridLayout()
+    gj = f[4, 3] = GridLayout()
+
+	ax = [
+		Axis(ga[1,1], 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[1], 
+			titlesize=font_sz),
+		Axis(gb[1,1], 
+			xlabel="", 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[2], 
+			titlesize=font_sz),
+		Axis(gc[1,1], 
+			xlabel="", 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[3], 
+			titlesize=font_sz),
+		Axis(gd[1,1], 
+			xlabel="", 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[4], 
+			titlesize=font_sz),
+        Axis(ge[1,1], 
+			xlabel="Agents", 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[5], 
+			titlesize=font_sz),
+		Axis(gf[1,1], 
+			xlabel="Agents", 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[6], 
+			titlesize=font_sz),
+		Axis(gg[1,1], 
+			xlabel="Agents", 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[7], 
+			titlesize=font_sz),
+        Axis(gh[1,1], 
+			xlabel="Agents", 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[8], 
+			titlesize=font_sz
+            ),
+		Axis(gi[1,1], 
+			xlabel="Agents", 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[9], 
+			titlesize=font_sz
+            ),
+        Axis(gj[1,1], 
+			xlabel="Agents", 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[10], 
+			titlesize=font_sz
+            )
+		]
+
+    hidexdecorations!.(ax, grid=false)
+
+    for (i, _) in enumerate(env_labels)
+        for (j, label) in enumerate(agent_labels)
+            R_agent = R[i][:, idx_episode, :, j]
+            plot_agent_perform!(ax[i], R_agent, j, label)
+        end
+    end
+
+    rowgap!(f.layout, Relative(0.02))
+    colgap!(f.layout, Relative(0.01))
+
+    Legend(f[1,2], ax[1], framevisible=true, tellwidth=false, tellheight=false, labelsize=9)
+
+	save("perform.eps", f, pt_per_unit=1)
+    #f
+end
+
+function plot_agent_perform!(ax, R, idx, label)
+    R_params = vec(mean(R, dims=1))
+    μ = mean(R_params)
+    σ = std(R_params)
+
+    colors = ColorSchemes.seaborn_colorblind.colors
+    lims_pert = (-0.2, 0.2)
+    for r in R_params
+        x = idx + rand()*(last(lims_pert) - first(lims_pert)) + first(lims_pert)
+        scatter!(ax, [x], [r]; color = (colors[idx], 0.2))
+    end
+    errorbars!(ax, [idx], [μ], σ; color = colors[idx], whiskerwidth = 10, label)
+end
+
+function plot_example(R)
+    idx_param = 5
+    agent_labels = ["Delta", "Monte Carlo", "Q-learning"]
+    env_labels = [
+        L"\text{DB}_1^1",
+        L"\text{DB}_2^1",
+        L"\text{DB}_2^2",
+        L"\text{DB}_2^3",
+        L"\text{DB}_3^1",
+        L"\text{DB}_3^2",
+        L"\text{DB}_3^3",
+        L"\text{TB}^1",
+        L"\text{TB}^2",
+        L"\text{TB}^3"
+    ]
+    
+    fig_sz_inch = (6.4, 12)
+	font_sz = 12
+    tick_font_sz = 9
+
+    f = Figure(resolution = 72 .* fig_sz_inch, fontsize=font_sz)
+
+    ga = f[1, 1] = GridLayout()
+	gb = f[2, 1] = GridLayout()
+	gc = f[3, 1] = GridLayout()
+	gd = f[4, 1] = GridLayout()
+    ge = f[5, 1] = GridLayout()
+	gf = f[6, 1] = GridLayout()
+	gg = f[7, 1] = GridLayout()
+    gh = f[8, 1] = GridLayout()
+	gi = f[9, 1] = GridLayout()
+    gj = f[10, 1] = GridLayout()
+
+	ax = [
+		Axis(ga[1,1], 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[1], 
+			titlesize=font_sz,
+            yticklabelsize = tick_font_sz),
+		Axis(gb[1,1], 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[2], 
+			titlesize=font_sz,
+            yticklabelsize = tick_font_sz),
+		Axis(gc[1,1], 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[3], 
+			titlesize=font_sz,
+            yticklabelsize = tick_font_sz),
+		Axis(gd[1,1], 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[4], 
+			titlesize=font_sz,
+            yticklabelsize = tick_font_sz),
+        Axis(ge[1,1], 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[5], 
+			titlesize=font_sz,
+            yticklabelsize = tick_font_sz),
+		Axis(gf[1,1], 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[6], 
+			titlesize=font_sz,
+            yticklabelsize = tick_font_sz),
+		Axis(gg[1,1], 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[7], 
+			titlesize=font_sz,
+            yticklabelsize = tick_font_sz),
+        Axis(gh[1,1], 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[8], 
+			titlesize=font_sz,
+            yticklabelsize = tick_font_sz),
+		Axis(gi[1,1], 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[9], 
+			titlesize=font_sz,
+            yticklabelsize = tick_font_sz),
+        Axis(gj[1,1], 
+			xlabel="Episodes", 
+			ylabel=L"\tilde{R}", 
+			title=env_labels[10], 
+			titlesize=font_sz,
+            yticklabelsize = tick_font_sz)
+		]
+
+    hidexdecorations!.(ax[1:9], grid=false)
+
+    rowgap!(f.layout, Relative(0.008))
+
+    for (i, _) in enumerate(env_labels)
+        for (j, label) in enumerate(agent_labels)
+            R_agent = R[i][:, :, idx_param, j]
+            plot_agent_example!(ax[i], R_agent, j, label)
+        end
+    end
+
+	Legend(f[11,1], ax[1], framevisible=false, orientation=:horizontal, tellwidth=false, tellheight=true, labelsize=9)
+
+    save("example.eps", f, pt_per_unit=1)
+
+    f
+end
+
+function plot_agent_example!(ax, R, idx, label)
+
+	(_, n_episodes) = size(R)
+    R_episodes = vec(mean(R, dims=1))
+    #μ = mean(R_episodes)
+    #σ = std(R_episodes)
+
+	lines!(ax, 1:n_episodes, R_episodes; label, colormap = :seaborn_colorblind6)
+	#band!(ax, t, μ+σ, μ-σ, color=(l.color,0.5), colormap = :seaborn_colorblind6)
+end
 
 function zero_intersect(R)
 
