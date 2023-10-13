@@ -25,9 +25,9 @@ include("Delta_agent.jl")
 include("run.jl")
 
 n_bandits = 10
-n_steps_per_episode = 50
-n_episodes = 200
-n_runs = 1000
+n_steps_per_episode = 10
+n_episodes = 100
+n_runs = 10
 
 learning_rates = vcat([0.01, 0.02], 0.05:0.1:1.0)
 
@@ -49,5 +49,5 @@ R_TB = run_environments(envs_TB, EmptyHook(), learning_rates; n_episodes, n_runs
 R = vcat(R_DB, R_TB)
 dists = vcat(dists_DB, dists_TB)
 
-serialize("R.jls", R)
-serialize("dists.jls", dists)
+serialize("./parameters/R.jls", R)
+serialize("./parameters/dists.jls", dists)

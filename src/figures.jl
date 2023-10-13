@@ -1,4 +1,4 @@
-function plot_perform(R)
+function plot_perform(R; show=false, save=true)
 
     Delta_idx, MC_idx, Q_idx = Base.OneTo(3)
     idx_episode = size(first(R))[2]
@@ -102,8 +102,12 @@ function plot_perform(R)
 
     Legend(f[1,2], ax[1], framevisible=true, tellwidth=false, tellheight=false, labelsize=9)
 
-	save("perform.eps", f, pt_per_unit=1)
-    #f
+	if save
+		save("./figures/perform.eps", f, pt_per_unit=1)
+	end
+	if show
+    	f
+	end
 end
 
 function plot_agent_perform!(ax, R, idx, label)
