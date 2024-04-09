@@ -1,4 +1,4 @@
-function plot_perform(R; show=false, save=true)
+function plot_perform(R)
 
     Delta_idx, MC_idx, Q_idx = Base.OneTo(3)
     idx_episode = size(first(R))[2]
@@ -511,18 +511,3 @@ function R_sensitivity(R, H, agent_labels, env_labels)
 
 	save("R_e.eps", f, pt_per_unit=1)
 end
-
-R = deserialize("R.jls")
-H = deserialize("H.jls")
-
-agent_labels = ["Delta", "Delta-online", "MC"]
-env_labels = [
-			"DB₁ : no rewards",
-			"DB₂ : binary rewards",
-			"DB₃ : continuous rewards",
-			"TB"
-			]
-
-example_performance(R, H, agent_labels, env_labels)
-T_sensitivity(R, H, agent_labels, env_labels)
-R_sensitivity(R, H, agent_labels, env_labels)

@@ -14,22 +14,23 @@ using MacroTools: @forward
 using CairoMakie
 using ColorSchemes
 
-include("do_every_step_episode_hook.jl")
-include("deferred_bandits.jl")
-include("delayed_bandits.jl")
-include("experience_priority_sampling_model.jl")
-include("tabular_bias_approximator.jl")
-include("Delta_approximator.jl")
-include("Delta_learner.jl")
-include("Delta_agent.jl")
-include("run.jl")
+include("./src/do_every_step_episode_hook.jl")
+include("./src/deferred_bandits.jl")
+include("./src/delayed_bandits.jl")
+include("./src/experience_priority_sampling_model.jl")
+include("./src/tabular_bias_approximator.jl")
+include("./src/Delta_approximator.jl")
+include("./src/Delta_learner.jl")
+include("./src/Delta_agent.jl")
+include("./src/run.jl")
 
 n_bandits = 10
-n_steps_per_episode = 10
-n_episodes = 100
-n_runs = 10
+n_steps_per_episode = 10#50
+n_episodes = 10#200
+n_runs = 10#1000
 
 learning_rates = vcat([0.01, 0.02], 0.05:0.1:1.0)
+epsilon_polciy = 0.05
 
 h = DoEveryNStepEveryEpisode(deferred_reward_hook; n=n_steps_per_episode - 1)
 
@@ -40,14 +41,14 @@ envs_DB = reduce(vcat, [
     ]
 )
 dists_DB = map(env -> first(env.reward_distributions), envs_DB)
-R_DB = run_environments(envs_DB, h, learning_rates; n_episodes, n_runs)
+R_DB = run_environments(envs_DB, h, learning_rates, epsilon_polciy; n_runs)
 
 envs_TB = get_TB_envs(n_bandits, n_steps_per_episode, n_episodes)
 dists_TB = map(env -> first(env.reward_distributions), envs_TB)
-R_TB = run_environments(envs_TB, EmptyHook(), learning_rates; n_episodes, n_runs)
+R_TB = run_environments(envs_TB, EmptyHook(), learning_rates, epsilon_polciy; n_runs)
 
 R = vcat(R_DB, R_TB)
 dists = vcat(dists_DB, dists_TB)
 
-serialize("./parameters/R.jls", R)
-serialize("./parameters/dists.jls", dists)
+serialize("R.jls", R)
+serialize("dists.jls", dists)
