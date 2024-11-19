@@ -1,4 +1,4 @@
-# deferred_RL
+# Deferred Reinforcement Learning
 
 An investigation of reinforcement learning environments where rewards are delayed and might overlap with future actions, yet the causes are actions of the past. Temporal difference learning is a classic way to deal with such environments. Here we are proposing another learning rule, Delta learning, that splits its learning between an online and an offline phase, during and after each episode respectively. 
 
